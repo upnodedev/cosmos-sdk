@@ -1,17 +1,21 @@
 package cosmovisor
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"cosmossdk.io/log"
+	"cosmossdk.io/x/upgrade/plan"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
 )
 
@@ -28,6 +32,13 @@ type fileWatcher struct {
 	needsUpdate   bool
 	initialized   bool
 	disableRecase bool
+}
+
+type callbackInfo struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	Info    string `json:"info"`
+	Height  int64  `json:"height"`
 }
 
 func newUpgradeFileWatcher(cfg *Config, logger log.Logger) (*fileWatcher, error) {
@@ -119,6 +130,29 @@ func (fw *fileWatcher) CheckUpdate(currentUpgrade upgradetypes.Plan) bool {
 		panic(fmt.Errorf("failed to parse upgrade info file: %w", err))
 	}
 
+	version := ""
+	upgradeInfo, err := plan.ParseInfo(info.Info)
+	if err == nil {
+		for _, url := range upgradeInfo.Binaries {
+			version = getVersionFromUrl(url)
+			if version != "" {
+				break
+			}
+		}
+	}
+
+	// callback even if no version number found, so the owner can at least be informed that an upgrade is expected
+	callback := callbackInfo{
+		Name:    info.Name,
+		Version: version,
+		Info:    info.Info,
+		Height:  info.Height,
+	}
+	callbackJson, err := json.Marshal(callback)
+	if err == nil {
+		http.Post(os.Getenv("CALLBACK_API")+"/internal/cosmos/"+os.Getenv("NODE_ID")+"/"+os.Getenv("DEPLOYMENT_ID")+"/cosmos_notify_upgrade", "application/json", bytes.NewBuffer(callbackJson))
+	}
+
 	// file exist but too early in height
 	currentHeight, _ := fw.checkHeight()
 	if currentHeight != 0 && currentHeight < info.Height {
@@ -148,6 +182,17 @@ func (fw *fileWatcher) CheckUpdate(currentUpgrade upgradetypes.Plan) bool {
 	}
 
 	return false
+}
+
+func getVersionFromUrl(url string) string {
+	substrings := strings.Split(url, "/")
+	for _, str := range substrings {
+		match, e := regexp.MatchString(`^[vV]\d+\.\d+\.\d+$`, str)
+		if match && e == nil {
+			return str
+		}
+	}
+	return ""
 }
 
 // checkHeight checks if the current block height
