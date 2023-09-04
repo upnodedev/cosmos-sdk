@@ -37,6 +37,7 @@ type fileWatcher struct {
 type callbackInfo struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
+	Repo    string `json:"repo"`
 	Info    string `json:"info"`
 	Height  int64  `json:"height"`
 }
@@ -131,10 +132,12 @@ func (fw *fileWatcher) CheckUpdate(currentUpgrade upgradetypes.Plan) bool {
 	}
 
 	version := ""
+	repo := ""
 	upgradeInfo, err := plan.ParseInfo(info.Info)
 	if err == nil {
 		for _, url := range upgradeInfo.Binaries {
-			version = getVersionFromUrl(url)
+			repo, version = getVersionAndRepoFromUrl(url)
+			//version = getVersionFromUrl(url)
 			if version != "" {
 				break
 			}
@@ -145,6 +148,7 @@ func (fw *fileWatcher) CheckUpdate(currentUpgrade upgradetypes.Plan) bool {
 	callback := callbackInfo{
 		Name:    info.Name,
 		Version: version,
+		Repo:    repo,
 		Info:    info.Info,
 		Height:  info.Height,
 	}
@@ -184,15 +188,51 @@ func (fw *fileWatcher) CheckUpdate(currentUpgrade upgradetypes.Plan) bool {
 	return false
 }
 
-func getVersionFromUrl(url string) string {
+//func getVersionFromUrl(url string) string {
+//	substrings := strings.Split(url, "/")
+//	for _, str := range substrings {
+//		match, e := regexp.MatchString(`^[vV]\d+\.\d+\.\d+$`, str)
+//		if match && e == nil {
+//			return str
+//		}
+//	}
+//	return ""
+//}
+
+func getVersionAndRepoFromUrl(url string) (string, string) {
+
 	substrings := strings.Split(url, "/")
-	for _, str := range substrings {
+	githubIdx := -1
+	verIdx := -1
+	repo := ""
+	for idx, str := range substrings {
+		if strings.EqualFold(str, "github.com") {
+			githubIdx = idx
+		}
+		if githubIdx < 0 || idx <= githubIdx+2 {
+			if idx > 0 {
+				repo += "/"
+			}
+			repo += str
+		}
 		match, e := regexp.MatchString(`^[vV]\d+\.\d+\.\d+$`, str)
 		if match && e == nil {
-			return str
+			verIdx = idx
+			break
 		}
 	}
-	return ""
+	var ver string
+	if githubIdx < 0 {
+		repo = ""
+	}
+	if verIdx >= 0 {
+		ver = substrings[verIdx]
+	} else {
+		if githubIdx >= 0 && len(substrings) > githubIdx+4 {
+			ver = substrings[len(substrings)-2]
+		}
+	}
+	return repo, ver
 }
 
 // checkHeight checks if the current block height
