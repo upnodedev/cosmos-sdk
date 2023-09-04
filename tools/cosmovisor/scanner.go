@@ -203,7 +203,7 @@ func getVersionAndRepoFromUrl(url string) (string, string) {
 
 	substrings := strings.Split(url, "/")
 	githubIdx := -1
-	verIdx := -1
+	ver := ""
 	repo := ""
 	for idx, str := range substrings {
 		if strings.EqualFold(str, "github.com") {
@@ -217,11 +217,10 @@ func getVersionAndRepoFromUrl(url string) (string, string) {
 		}
 		match, e := regexp.MatchString(`^[vV]\d+\.\d+\.\d+`, str)
 		if match && e == nil {
-			verIdx = idx
+			ver = str
 			break
 		}
 	}
-	var ver string
 	if githubIdx < 0 {
 		repo = ""
 	}
