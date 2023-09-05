@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"cosmossdk.io/log"
-	"cosmossdk.io/tools/cosmovisor"
+	"github.com/upnodedev/cosmos-sdk/tools/cosmovisor"
 )
 
 type InitTestSuite struct {

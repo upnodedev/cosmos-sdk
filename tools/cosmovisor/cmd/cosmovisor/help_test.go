@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"cosmossdk.io/tools/cosmovisor"
+	"github.com/upnodedev/cosmos-sdk/tools/cosmovisor"
 )
 
 func TestGetHelpText(t *testing.T) {

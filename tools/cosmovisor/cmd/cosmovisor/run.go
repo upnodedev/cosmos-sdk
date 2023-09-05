@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/spf13/cobra"
 
-	"cosmossdk.io/tools/cosmovisor"
+	"github.com/upnodedev/cosmos-sdk/tools/cosmovisor"
 )
 
 var runCmd = &cobra.Command{

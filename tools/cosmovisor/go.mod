@@ -1,4 +1,5 @@
-module cosmossdk.io/tools/cosmovisor
+//module cosmossdk.io/tools/cosmovisor
+module github.com/upnodedev/cosmos-sdk/tools/cosmovisor
 
 go 1.20
 

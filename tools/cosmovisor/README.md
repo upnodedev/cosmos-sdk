@@ -49,13 +49,13 @@ You can download Cosmovisor from the [GitHub releases](https://github.com/cosmos
 To install the latest version of `cosmovisor`, run the following command:
 
 ```shell
-go install cosmossdk.io/tools/cosmovisor/cmd/cosmovisor@latest
+go install github.com/upnodedev/cosmos-sdk/tools/cosmovisor/cmd/cosmovisor@latest
 ```
 
 To install a specific version, you can specify the version:
 
 ```shell
-go install cosmossdk.io/tools/cosmovisor/cmd/cosmovisor@v1.5.0
+go install github.com/upnodedev/cosmos-sdk/tools/cosmovisor/cmd/cosmovisor@v1.5.0
 ```
 
 Run `cosmovisor version` to check the cosmovisor version.
