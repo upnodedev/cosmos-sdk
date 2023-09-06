@@ -131,16 +131,14 @@ func (fw *fileWatcher) CheckUpdate(currentUpgrade upgradetypes.Plan) bool {
 		panic(fmt.Errorf("failed to parse upgrade info file: %w", err))
 	}
 
+	// extract version number and github url (if possible) for upnode deploy upgrade request
 	version := ""
 	repo := ""
 	upgradeInfo, err := plan.ParseInfo(info.Info)
 	if err == nil {
 		for _, url := range upgradeInfo.Binaries {
-			fmt.Println("check url " + url)
 			repo, version = getVersionAndRepoFromUrl(url)
-			//version = getVersionFromUrl(url)
 			if version != "" {
-				fmt.Println("found version " + version)
 				break
 			}
 		}
@@ -156,8 +154,9 @@ func (fw *fileWatcher) CheckUpdate(currentUpgrade upgradetypes.Plan) bool {
 	}
 	callbackJson, err := json.Marshal(callback)
 	if err == nil {
+		// report upgrade requirement back to upnode deploy
 		callbackUrl := os.Getenv("CALLBACK_API") + "/internal/cosmos/" + os.Getenv("NODE_ID") + "/" + os.Getenv("DEPLOYMENT_ID") + "/cosmos_notify_upgrade"
-		fmt.Println("callback to " + callbackUrl)
+		fmt.Println("upgrade callback to " + callbackUrl)
 		http.Post(callbackUrl, "application/json", bytes.NewBuffer(callbackJson))
 	}
 
@@ -191,17 +190,6 @@ func (fw *fileWatcher) CheckUpdate(currentUpgrade upgradetypes.Plan) bool {
 
 	return false
 }
-
-//func getVersionFromUrl(url string) string {
-//	substrings := strings.Split(url, "/")
-//	for _, str := range substrings {
-//		match, e := regexp.MatchString(`^[vV]\d+\.\d+\.\d+$`, str)
-//		if match && e == nil {
-//			return str
-//		}
-//	}
-//	return ""
-//}
 
 func getVersionAndRepoFromUrl(url string) (string, string) {
 
