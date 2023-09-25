@@ -166,6 +166,13 @@ func (fw *fileWatcher) CheckUpdate(currentUpgrade upgradetypes.Plan) bool {
 		return false
 	}
 
+	if err == nil {
+		// send an alert to notify the backend that the upgrade height has been reached
+		callbackUrl := os.Getenv("CALLBACK_API") + "/internal/cosmos/" + os.Getenv("NODE_ID") + "/" + os.Getenv("DEPLOYMENT_ID") + "/cosmos_upgrade_height_reached"
+		fmt.Println("upgrade height callback to " + callbackUrl)
+		http.Post(callbackUrl, "application/json", bytes.NewBuffer(callbackJson))
+	}
+
 	if !fw.initialized {
 		// daemon has restarted
 		fw.initialized = true
