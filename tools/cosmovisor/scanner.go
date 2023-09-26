@@ -153,24 +153,15 @@ func (fw *fileWatcher) CheckUpdate(currentUpgrade upgradetypes.Plan) bool {
 		Height:  info.Height,
 	}
 	callbackJson, err := json.Marshal(callback)
+
 	if err == nil {
-		// report upgrade requirement back to upnode deploy
-		callbackUrl := os.Getenv("CALLBACK_API") + "/internal/cosmos/" + os.Getenv("NODE_ID") + "/" + os.Getenv("DEPLOYMENT_ID") + "/cosmos_notify_upgrade"
-		fmt.Println("upgrade callback to " + callbackUrl)
-		http.Post(callbackUrl, "application/json", bytes.NewBuffer(callbackJson))
+		upgradeDetectedCallback(&callbackJson)
 	}
 
 	// file exist but too early in height
 	currentHeight, _ := fw.checkHeight()
 	if currentHeight != 0 && currentHeight < info.Height {
 		return false
-	}
-
-	if err == nil {
-		// send an alert to notify the backend that the upgrade height has been reached
-		callbackUrl := os.Getenv("CALLBACK_API") + "/internal/cosmos/" + os.Getenv("NODE_ID") + "/" + os.Getenv("DEPLOYMENT_ID") + "/cosmos_upgrade_height_reached"
-		fmt.Println("upgrade height callback to " + callbackUrl)
-		http.Post(callbackUrl, "application/json", bytes.NewBuffer(callbackJson))
 	}
 
 	if !fw.initialized {
@@ -184,6 +175,7 @@ func (fw *fileWatcher) CheckUpdate(currentUpgrade upgradetypes.Plan) bool {
 		// name (read from the cosmovisor file) with the upgrade info.
 		if !strings.EqualFold(currentUpgrade.Name, fw.currentInfo.Name) {
 			fw.needsUpdate = true
+			upgradeHeightReachedCallback(&callbackJson)
 			return true
 		}
 	}
@@ -192,10 +184,25 @@ func (fw *fileWatcher) CheckUpdate(currentUpgrade upgradetypes.Plan) bool {
 		fw.currentInfo = info
 		fw.lastModTime = stat.ModTime()
 		fw.needsUpdate = true
+		upgradeHeightReachedCallback(&callbackJson)
 		return true
 	}
 
 	return false
+}
+
+func upgradeDetectedCallback(callbackJson *[]byte) {
+	// report upgrade requirement back to upnode deploy
+	callbackUrl := os.Getenv("CALLBACK_API") + "/internal/cosmos/" + os.Getenv("NODE_ID") + "/" + os.Getenv("DEPLOYMENT_ID") + "/cosmos_notify_upgrade"
+	fmt.Println("upgrade callback to " + callbackUrl)
+	http.Post(callbackUrl, "application/json", bytes.NewBuffer(*callbackJson))
+}
+
+func upgradeHeightReachedCallback(callbackJson *[]byte) {
+	// send an alert to notify the backend that the upgrade height has been reached
+	callbackUrl := os.Getenv("CALLBACK_API") + "/internal/cosmos/" + os.Getenv("NODE_ID") + "/" + os.Getenv("DEPLOYMENT_ID") + "/cosmos_upgrade_height_reached"
+	fmt.Println("upgrade height callback to " + callbackUrl)
+	http.Post(callbackUrl, "application/json", bytes.NewBuffer(*callbackJson))
 }
 
 func getVersionAndRepoFromUrl(url string) (string, string) {
